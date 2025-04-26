@@ -1,7 +1,7 @@
 <template>
   <div class="analysis-page">
     <div class="container">
-      <div class="analysis-container">
+      <div class="analysis-container" ref="pdfContent">
         <h1 class="analysis-title">Your Nightmare Analysis</h1>
         
         <div class="analysis-summary">
@@ -57,6 +57,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 // This would normally come from an API call
 const analysis = reactive({
@@ -136,10 +138,32 @@ const analysis = reactive({
   ]
 })
 
+const pdfContent = ref(null)
+
+const exportToPDF = async () => {
+  const element = pdfContent.value;
+  const canvas = await html2canvas(element, {
+    scale: 2, // 提高分辨率
+    useCORS: true, // 允许跨域图片
+    logging: false // 关闭日志
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+  pdf.save('report.pdf'); // 自动下载
+}
+
 const saveAnalysis = () => {
   // In a real app, this would save to a database
   // alert('Analysis saved successfully!')
   // 目前先保存pdf到本地电脑的了
+  exportToPDF()
+  console.log("save to PDF success")
 }
 
 const backToHome = () => {
