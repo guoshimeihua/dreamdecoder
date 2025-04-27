@@ -49,7 +49,10 @@
 	  
 	  <div class="action-buttons">
 	    <router-link to="/" class="btn btn-secondary" @click="backToHome">Back to Home</router-link>
-	    <button class="btn btn-primary" @click="saveAnalysis">Save Analysis as PDF</button>
+	    <button class="btn btn-primary" :disabled="loading" @click="saveAnalysis">
+			<span v-if="loading">Saving...</span>
+			<span v-else>Save Analysis as Image</span>
+		</button>
 	  </div>
     </div>
   </div>
@@ -139,31 +142,38 @@ const analysis = reactive({
 })
 
 const pdfContent = ref(null)
+const loading = ref(false)
 
 const exportToPDF = async () => {
+  loading.value = true
   const element = pdfContent.value;
-  const canvas = await html2canvas(element, {
-    scale: 2, // 提高分辨率
-    useCORS: true, // 允许跨域图片
-    logging: false // 关闭日志
-  });
-
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const imgProps = pdf.getImageProperties(imgData);
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-  pdf.save('report.pdf'); // 自动下载
+  try {
+	  const canvas = await html2canvas(element, {
+	    scale: 2, // 提高分辨率
+	    useCORS: true, // 允许跨域图片
+	    logging: false // 关闭日志
+	  })
+	  
+	  //创建下载链接
+	  const link = document.createElement('a')
+	  let fileName = "repot_" + (new Date()).getTime() + ".png"
+	  link.download = fileName
+	  link.href = canvas.toDataURL('image/png')
+	  link.click();
+	  
+	  console.log("下载png图片成功")
+  } catch (error) {
+	  console.log('Error generating image: ', error)
+	  alert("Save Analysis as image failed!")
+  } finally {
+    loading.value = false
+  }
 }
 
 const saveAnalysis = () => {
   // In a real app, this would save to a database
   // alert('Analysis saved successfully!')
-  // 目前先保存pdf到本地电脑的了
   exportToPDF()
-  console.log("save to PDF success")
 }
 
 const backToHome = () => {
